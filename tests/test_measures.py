@@ -30,6 +30,7 @@ def test_scientific_result_keeps_model_text_separate_from_serialized_image() -> 
     assert result.get_model_value() == "Trusted numeric summary"
     display = result.extra["display"]
     assert "data:image/png;base64,aW1hZ2U=" in str(display.html)
+    assert "microscopy-image-result" in str(display.html)
     assert result.extra[TAG_EXTRA_KEY] is commons.Tag.A
 
     saved = serialize_chatlas_turn(Turn([result], role="user"))

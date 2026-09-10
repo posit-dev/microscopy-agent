@@ -42,6 +42,7 @@ def scientific_image_result(
                 "border: 1px solid var(--bs-border-color); "
                 "border-radius: 0.75rem; background: var(--bs-body-bg);"
             ),
+            class_="microscopy-image-result",
         ),
         full_screen=True,
         open=True,

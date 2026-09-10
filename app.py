@@ -35,6 +35,10 @@ UPLOAD_SIDEBAR = chat_sidebar(
           --bs-border-radius: 0.375rem;
           --bs-border-radius-sm: 0.25rem;
         }
+
+        .shiny-tool-card:has(.microscopy-image-result) {
+          opacity: 1 !important;
+        }
         """
     ),
     ui.h4("Upload microscopy data"),

@@ -18,5 +18,6 @@ def test_page_chat_combines_commons_theme_history_and_upload_controls() -> None:
         for dependency in app_ui.get_dependencies()
     )
     assert "--bs-border-radius: 0.375rem" in markup
+    assert ".shiny-tool-card:has(.microscopy-image-result)" in markup
     assert 'id="gfp_upload"' in markup
     assert 'id="dna_upload"' in markup
