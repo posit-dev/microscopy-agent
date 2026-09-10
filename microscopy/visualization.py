@@ -51,11 +51,38 @@ def _composite(
     gfp_bounds: tuple[float, float],
     dna_bounds: tuple[float, float],
 ) -> np.ndarray:
+    return _display_image(
+        analysis,
+        channel="composite",
+        overlay="nuclei",
+        gfp_bounds=gfp_bounds,
+        dna_bounds=dna_bounds,
+    )
+
+
+def _display_image(
+    analysis: WellAnalysis,
+    *,
+    channel: str,
+    overlay: str,
+    gfp_bounds: tuple[float, float],
+    dna_bounds: tuple[float, float],
+) -> np.ndarray:
     gfp = _scale(analysis.gfp_image, gfp_bounds)
     dna = _scale(analysis.dna_image, dna_bounds)
-    rgb = np.stack((dna * 0.78, gfp, dna), axis=-1)
-    boundaries = find_boundaries(analysis.labels, mode="outer")
-    rgb[boundaries] = np.array([1.0, 0.78, 0.12])
+    if channel == "composite":
+        rgb = np.stack((dna * 0.78, gfp, dna), axis=-1)
+    elif channel == "gfp":
+        rgb = np.stack((np.zeros_like(gfp), gfp, np.zeros_like(gfp)), axis=-1)
+    elif channel == "dna":
+        rgb = np.stack((dna * 0.78, np.zeros_like(dna), dna), axis=-1)
+    else:
+        raise ValueError(f"Unsupported channel view: {channel}")
+    if overlay == "nuclei":
+        boundaries = find_boundaries(analysis.labels, mode="outer")
+        rgb[boundaries] = np.array([1.0, 0.78, 0.12])
+    elif overlay != "none":
+        raise ValueError(f"Unsupported overlay view: {overlay}")
     return rgb
 
 
@@ -117,6 +144,36 @@ def render_annotation(analysis: WellAnalysis) -> bytes:
     return _png_bytes(fig)
 
 
+def render_parameterized_annotation(
+    analysis: WellAnalysis,
+    *,
+    channel: str,
+    overlay: str,
+) -> bytes:
+    """Render one uploaded sample with caller-selected display options."""
+    fig, ax = plt.subplots(figsize=(7.2, 7.7))
+    ax.imshow(
+        _display_image(
+            analysis,
+            channel=channel,
+            overlay=overlay,
+            gfp_bounds=_bounds([analysis.gfp_image]),
+            dna_bounds=_bounds([analysis.dna_image]),
+        )
+    )
+    _style_image_axis(ax, analysis)
+    fig.suptitle(
+        f"Runtime upload analysis · channel={channel} · overlay={overlay}",
+        x=0.125,
+        y=0.985,
+        ha="left",
+        color=MUTED,
+        fontsize=10,
+    )
+    fig.subplots_adjust(top=0.94, bottom=0.06)
+    return _png_bytes(fig)
+
+
 def render_comparison(analyses: Sequence[WellAnalysis]) -> bytes:
     """Render wells side by side using shared channel display scaling."""
     if len(analyses) < 2:
@@ -134,6 +191,46 @@ def render_comparison(analyses: Sequence[WellAnalysis]) -> bytes:
         _style_image_axis(ax, analysis)
     fig.suptitle(
         "Shared display scaling · FKHR-GFP (green), DNA (magenta), nuclei (yellow)",
+        x=0.08,
+        y=0.995,
+        ha="left",
+        color=MUTED,
+        fontsize=10,
+    )
+    fig.subplots_adjust(wspace=0.08, top=0.93, bottom=0.08)
+    return _png_bytes(fig)
+
+
+def render_parameterized_comparison(
+    analyses: Sequence[WellAnalysis],
+    *,
+    channel: str,
+    overlay: str,
+) -> bytes:
+    """Render uploaded samples with shared scaling and selected display options."""
+    if len(analyses) < 2:
+        raise ValueError("Comparison requires at least two uploaded samples.")
+    gfp_bounds = _bounds([analysis.gfp_image for analysis in analyses])
+    dna_bounds = _bounds([analysis.dna_image for analysis in analyses])
+    fig, axes = plt.subplots(
+        1,
+        len(analyses),
+        figsize=(6.2 * len(analyses), 6.9),
+        squeeze=False,
+    )
+    for ax, analysis in zip(axes[0], analyses, strict=True):
+        ax.imshow(
+            _display_image(
+                analysis,
+                channel=channel,
+                overlay=overlay,
+                gfp_bounds=gfp_bounds,
+                dna_bounds=dna_bounds,
+            )
+        )
+        _style_image_axis(ax, analysis)
+    fig.suptitle(
+        f"Runtime upload comparison · shared {channel} scaling · overlay={overlay}",
         x=0.08,
         y=0.995,
         ha="left",

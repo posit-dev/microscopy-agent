@@ -3,7 +3,9 @@
 This is a small Commons agent for the BBBC013 cytoplasm-to-nucleus
 translocation image set. It demonstrates a conversational interface invoking a
 pre-authored, deterministic microscopy workflow and returning annotated images
-and dose-response plots with Commons provenance.
+and dose-response plots with Commons provenance. It also accepts persistent
+user-uploaded GFP/DNA image pairs and analyzes them with runtime-selected
+parameters.
 
 The implementation is deliberately illustrative. It segments nuclei from the
 DRAQ channel with a fixed classical image-processing pipeline and reports
@@ -41,10 +43,34 @@ the scientific workflow does not need network access after setup.
   the nuclei annotated.
 - How does LY294002 compare?
 - Annotate well A01.
+- Analyze my uploaded sample with the DNA channel shown and no overlay.
+- Re-run my upload using the center crop and a minimum nucleus area of 100.
+- Compare my two uploaded samples with shared GFP scaling.
 
 The model selects a registered measure and its arguments. Segmentation,
 quantification, representative-well selection, aggregation, and rendering are
 implemented in trusted code.
+
+## Persistent uploads
+
+The `page_chat` sidebar uses ordinary Shiny file inputs to register a matching
+GFP and DNA image pair. PNG, JPEG, BMP, and TIFF files are accepted. The
+channels must have identical dimensions.
+
+Uploaded files and their SQLite inventory are stored permanently under
+`data/uploads/`, which is excluded from Git. Each pair receives an ID such as
+`patient-7-baseline-a1b2c3d4e5`. The sidebar shows that ID, and the app adds the
+current inventory to the agent's turn context.
+
+The upload controls share the sidebar with shinychat's native conversation
+history, including New Chat, search, restore, rename, and delete controls.
+Commons is exposed through a lazy shinychat-compatible client so restored
+conversations retain their agent turns and provenance-aware streaming.
+
+Upload measures take the public ID and optional crop, display, and segmentation
+parameters. Commons injects the private upload database into those measures;
+the model does not receive server file paths. Changing the crop or segmentation
+parameters recomputes the analysis from the stored pixels.
 
 ## Commands
 

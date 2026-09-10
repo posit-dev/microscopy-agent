@@ -43,11 +43,24 @@ def analyze_well(
     record = dict(metadata)
     gfp = load_grayscale(record["channel1_path"])
     dna = load_grayscale(record["channel2_path"])
+    return analyze_images(gfp, dna, metadata=record, config=config)
+
+
+def analyze_images(
+    gfp: np.ndarray,
+    dna: np.ndarray,
+    *,
+    metadata: Mapping[str, Any],
+    config: SegmentationConfig = DEFAULT_CONFIG,
+) -> WellAnalysis:
+    """Run the analysis pipeline over already-loaded channel arrays."""
+    if gfp.shape != dna.shape:
+        raise ValueError("GFP and DNA images must have identical dimensions.")
     labels = segment_nuclei(dna, config=config)
     nuclei = quantify_nuclei(labels, gfp)
     summary = summarize_nuclei(nuclei)
     return WellAnalysis(
-        metadata=record,
+        metadata=dict(metadata),
         gfp_image=gfp,
         dna_image=dna,
         labels=labels,

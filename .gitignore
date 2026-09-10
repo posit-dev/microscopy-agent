@@ -9,3 +9,6 @@ data/raw/*
 !data/raw/.gitkeep
 data/derived/*
 !data/derived/.gitkeep
+
+data/uploads/*
+!data/uploads/.gitkeep

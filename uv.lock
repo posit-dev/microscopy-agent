@@ -269,6 +269,7 @@ dependencies = [
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "shiny" },
     { name = "shinychat" },
+    { name = "sqlalchemy" },
 ]
 
 [package.dev-dependencies]
@@ -290,6 +291,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.14" },
     { name = "shiny", specifier = ">=1.7.0" },
     { name = "shinychat", specifier = ">=0.7.1" },
+    { name = "sqlalchemy", specifier = ">=2.0" },
 ]
 
 [package.metadata.requires-dev]
