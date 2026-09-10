@@ -17,7 +17,7 @@ clinical analysis.
 
 The project currently uses the sibling Python Commons checkout at
 `../commons/pkg-py`, matching Commons commit
-`64b2c2ed482e0ab2d6df2dfeac88cea1527c1500`.
+`8614f48b5aff2ad20500cf29fcd2e295777b847c`.
 
 ```bash
 uv sync
@@ -59,18 +59,22 @@ channels must have identical dimensions.
 
 Uploaded files and their SQLite inventory are stored permanently under
 `data/uploads/`, which is excluded from Git. Each pair receives an ID such as
-`patient-7-baseline-a1b2c3d4e5`. The sidebar shows that ID, and the app adds the
-current inventory to the agent's turn context.
+`patient-7-baseline-a1b2c3d4e5`. The sidebar shows that ID, and a trusted
+measure lets the agent read the current inventory without exposing private
+server paths.
 
 The upload controls share the sidebar with shinychat's native conversation
 history, including New Chat, search, restore, rename, and delete controls.
-Commons is exposed through a lazy shinychat-compatible client so restored
-conversations retain their agent turns and provenance-aware streaming.
+The session-local agent is connected through `commons.ui.server()`, so Commons
+uses shinychat's native Chatlas history path and queues its restore reminder
+when a stored conversation is reopened.
 
 Upload measures take the public ID and optional crop, display, and segmentation
 parameters. Commons injects the private upload database into those measures;
-the model does not receive server file paths. Changing the crop or segmentation
-parameters recomputes the analysis from the stored pixels.
+the model does not receive server file paths. When a user does not supply an
+exact ID, the agent calls the trusted upload-list measure against the current
+database. Changing the crop or segmentation parameters recomputes the analysis
+from the stored pixels.
 
 ## Commands
 

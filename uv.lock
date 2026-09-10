@@ -213,7 +213,9 @@ dependencies = [
     { name = "chatlas" },
     { name = "duckdb" },
     { name = "google-re2" },
+    { name = "htmltools" },
     { name = "jinja2" },
+    { name = "opentelemetry-api" },
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -227,21 +229,27 @@ requires-dist = [
     { name = "chatlas", specifier = ">=0.22.0" },
     { name = "duckdb", specifier = ">=1.0" },
     { name = "google-re2", specifier = ">=1.1.20251105" },
+    { name = "htmltools", specifier = ">=0.6" },
     { name = "httpx", marker = "extra == 'tracing'", specifier = ">=0.27" },
     { name = "jinja2", specifier = ">=3" },
+    { name = "opentelemetry-api", specifier = ">=1.0" },
     { name = "opentelemetry-exporter-otlp-json-file", marker = "extra == 'tracing'" },
     { name = "opentelemetry-sdk", marker = "extra == 'tracing'", specifier = ">=1.39" },
+    { name = "packaging", marker = "extra == 'shiny'", specifier = ">=23" },
     { name = "pyarrow", specifier = ">=17" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "raghilda", specifier = ">=0.2.1" },
+    { name = "shiny", marker = "extra == 'shiny'", specifier = ">=1.7" },
+    { name = "shinychat", marker = "extra == 'shiny'", specifier = ">=0.7,<0.8" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "sqlglot", specifier = ">=25" },
 ]
-provides-extras = ["tracing"]
+provides-extras = ["tracing", "shiny"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "commons", extras = ["shiny"] },
     { name = "pandas", specifier = ">=2" },
     { name = "pins", specifier = ">=0.9" },
     { name = "polars", specifier = ">=1" },
@@ -290,7 +298,7 @@ requires-dist = [
     { name = "scikit-image", specifier = ">=0.24" },
     { name = "scipy", specifier = ">=1.14" },
     { name = "shiny", specifier = ">=1.7.0" },
-    { name = "shinychat", specifier = ">=0.7.1" },
+    { name = "shinychat", specifier = ">=0.7.1,<0.8" },
     { name = "sqlalchemy", specifier = ">=2.0" },
 ]
 

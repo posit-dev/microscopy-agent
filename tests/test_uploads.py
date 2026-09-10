@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 
 import commons
@@ -87,8 +86,10 @@ def test_uploaded_measure_varies_runtime_analysis_parameters(tmp_path: Path) -> 
 
     assert "Segmented nuclei: 2" in permissive.value
     assert "Segmented nuclei: 1" in restrictive.value
-    assert base64.b64decode(permissive.image_base64).startswith(b"\x89PNG")
-    assert permissive.image_base64 != restrictive.image_base64
+    permissive_html = str(permissive.extra["display"].html)
+    restrictive_html = str(restrictive.extra["display"].html)
+    assert "data:image/png;base64,iVBOR" in permissive_html
+    assert permissive_html != restrictive_html
 
 
 def test_upload_engine_is_injected_but_not_model_visible() -> None:

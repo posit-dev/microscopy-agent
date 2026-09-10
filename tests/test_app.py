@@ -1,0 +1,22 @@
+from __future__ import annotations
+
+import commons
+from chatlas import Chat
+
+
+def test_commons_uses_chatlas_history_semantics() -> None:
+    assert issubclass(commons.Commons, Chat)
+
+
+def test_page_chat_combines_commons_theme_history_and_upload_controls() -> None:
+    from app import app_ui
+
+    markup = str(app_ui)
+    assert "shiny-chat-history" in markup
+    assert any(
+        dependency.name == "commons-chat"
+        for dependency in app_ui.get_dependencies()
+    )
+    assert "--bs-border-radius: 0.375rem" in markup
+    assert 'id="gfp_upload"' in markup
+    assert 'id="dna_upload"' in markup

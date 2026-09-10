@@ -1,31 +1,36 @@
-"""Rich measure results that remain model-readable and render as images."""
+"""Serializable rich results for trusted microscopy measures."""
 
 from __future__ import annotations
 
+from typing import Any
+
 from chatlas import ContentToolResult
 from shiny import ui
-from shinychat import message_content, message_content_chunk
-from shinychat.types import ChatMessage
+from shinychat.types import ToolResultDisplay
 
 
 class ScientificImageResult(ContentToolResult):
-    """A textual tool result with a separately rendered trusted PNG."""
-
-    image_base64: str
-    alt_text: str
-    caption: str
+    """A model-readable result whose image lives in the tool display envelope."""
 
 
-def _result_ui(result: ScientificImageResult) -> ChatMessage:
-    return ChatMessage(
-        content=ui.div(
+def scientific_image_result(
+    *,
+    value: Any,
+    image_base64: str,
+    alt_text: str,
+    caption: str,
+    extra: dict[str, Any] | None = None,
+) -> ScientificImageResult:
+    """Build an image result that survives shinychat history serialization."""
+    display = ToolResultDisplay(
+        html=ui.div(
             ui.img(
-                src=f"data:image/png;base64,{result.image_base64}",
-                alt=result.alt_text,
+                src=f"data:image/png;base64,{image_base64}",
+                alt=alt_text,
                 style="display: block; width: 100%; height: auto;",
             ),
             ui.p(
-                result.caption,
+                caption,
                 style=(
                     "margin: 0; padding: 0.75rem 0.9rem 0.85rem; "
                     "font-size: 0.82rem; line-height: 1.45; "
@@ -37,15 +42,12 @@ def _result_ui(result: ScientificImageResult) -> ChatMessage:
                 "border: 1px solid var(--bs-border-color); "
                 "border-radius: 0.75rem; background: var(--bs-body-bg);"
             ),
-        )
+        ),
+        full_screen=True,
+        open=True,
+        open_style="framed",
     )
-
-
-@message_content.register
-def _(result: ScientificImageResult) -> ChatMessage:
-    return _result_ui(result)
-
-
-@message_content_chunk.register
-def _(result: ScientificImageResult) -> ChatMessage:
-    return _result_ui(result)
+    return ScientificImageResult(
+        value=value,
+        extra={**(extra or {}), "display": display},
+    )

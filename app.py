@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import commons
 from shiny import App, reactive, render, ui
-from shinychat import Chat, chat_sidebar, page_chat
+from shinychat import chat_sidebar, page_chat
+from shinychat.types import HistoryOptions
 
-from agent import CommonsChatAdapter
+from agent import build_agent
 from microscopy.uploads import UPLOAD_LIBRARY
 
 INITIAL_GREETING = ui.TagList(
@@ -27,6 +29,14 @@ INITIAL_GREETING = ui.TagList(
 UPLOAD_ACCEPT = [".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"]
 
 UPLOAD_SIDEBAR = chat_sidebar(
+    ui.tags.style(
+        """
+        #chat-sidebar {
+          --bs-border-radius: 0.375rem;
+          --bs-border-radius-sm: 0.25rem;
+        }
+        """
+    ),
     ui.h4("Upload microscopy data"),
     ui.p(
         "Add a matching GFP and DNA image pair. Samples are stored permanently "
@@ -74,6 +84,7 @@ app_ui = page_chat(
     placeholder="Ask about wells, treatments, dose response, or uploads…",
     allow_attachments=False,
     window_title="Commons microscopy demo",
+    theme=commons.ui.theme(),
     footer=ui.div(
         "BBBC013 · U2OS FKHR-EGFP · illustrative analysis, not a validated "
         "assay. Images © Ilya Ravkin, CC BY 3.0.",
@@ -86,10 +97,11 @@ app_ui = page_chat(
 
 
 def server(input, output, session) -> None:
-    Chat(
+    commons.ui.server(
         "chat",
-        client=CommonsChatAdapter(),
+        build_agent(),
         greeting=INITIAL_GREETING,
+        history=HistoryOptions(title=None),
         on_error="actual",
     )
     upload_notice = reactive.value(None)

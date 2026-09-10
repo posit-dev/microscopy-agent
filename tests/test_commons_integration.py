@@ -156,9 +156,9 @@ def test_measure_image_is_streamed_with_verified_provenance() -> None:
     ]
 
     assert len(image_results) == 1
-    assert image_results[0].extra == {TAG_EXTRA_KEY: commons.Tag.A}
+    assert image_results[0].extra[TAG_EXTRA_KEY] is commons.Tag.A
     assert any(
         isinstance(chunk, str)
-        and '<shiny-aside label="Verified answer">' in chunk
+        and '<shiny-aside label="Verified answer"' in chunk
         for chunk in chunks
     )

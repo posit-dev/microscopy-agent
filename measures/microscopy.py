@@ -20,7 +20,7 @@ from microscopy.visualization import (
     render_dose_response,
 )
 
-from .results import ScientificImageResult
+from .results import ScientificImageResult, scientific_image_result
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
@@ -58,7 +58,7 @@ def _encode(
     alt_text: str,
     caption: str,
 ) -> ScientificImageResult:
-    return ScientificImageResult(
+    return scientific_image_result(
         value=model_text,
         image_base64=base64.b64encode(png).decode("ascii"),
         alt_text=alt_text,
