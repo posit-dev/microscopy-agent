@@ -15,8 +15,8 @@ clinical analysis.
 
 ## Setup
 
-The project currently uses the sibling Python Commons checkout at
-`../commons/pkg-py`, matching Commons commit
+The project installs Python Commons from
+`https://github.com/posit-dev/commons.git`, pinned to commit
 `8614f48b5aff2ad20500cf29fcd2e295777b847c`.
 
 ```bash

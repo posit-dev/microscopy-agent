@@ -28,7 +28,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
-commons = { path = "../commons/pkg-py", editable = true }
+commons = { git = "https://github.com/posit-dev/commons.git", rev = "8614f48b5aff2ad20500cf29fcd2e295777b847c", subdirectory = "pkg-py" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
