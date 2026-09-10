@@ -1,0 +1,11 @@
+.DS_Store
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+data/raw/*
+!data/raw/.gitkeep
+data/derived/*
+!data/derived/.gitkeep
