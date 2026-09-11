@@ -30,6 +30,7 @@ GREEN = "#25a86b"
 INK = "#172126"
 MUTED = "#66747a"
 YELLOW = "#f6c344"
+CYAN = "#39b9d4"
 GRID = "#dce3e5"
 
 
@@ -54,7 +55,7 @@ def _composite(
     return _display_image(
         analysis,
         channel="composite",
-        overlay="nuclei",
+        overlay="compartments" if analysis.cytoplasm_labels is not None else "nuclei",
         gfp_bounds=gfp_bounds,
         dna_bounds=dna_bounds,
     )
@@ -78,7 +79,15 @@ def _display_image(
         rgb = np.stack((dna * 0.78, np.zeros_like(dna), dna), axis=-1)
     else:
         raise ValueError(f"Unsupported channel view: {channel}")
-    if overlay == "nuclei":
+    if overlay in {"nuclei", "compartments"}:
+        if overlay == "compartments":
+            if analysis.cytoplasm_labels is None:
+                raise ValueError("This analysis has no cytoplasmic compartments.")
+            cytoplasm_boundaries = find_boundaries(
+                analysis.cytoplasm_labels,
+                mode="outer",
+            )
+            rgb[cytoplasm_boundaries] = np.array([0.22, 0.73, 0.83])
         boundaries = find_boundaries(analysis.labels, mode="outer")
         rgb[boundaries] = np.array([1.0, 0.78, 0.12])
     elif overlay != "none":
@@ -99,13 +108,17 @@ def _style_image_axis(ax: Axes, analysis: WellAnalysis) -> None:
         fontweight="bold",
         pad=10,
     )
+    detail = (
+        f"{analysis.summary['nucleus_count']} nuclei  ·  "
+        f"median nuclear GFP {analysis.summary['median_nuclear_gfp']:.1f}"
+    )
+    ratio = analysis.summary.get("median_cytoplasm_to_nucleus_ratio")
+    if ratio is not None and np.isfinite(ratio):
+        detail += f"  ·  median cyto:nucleus {ratio:.3f}"
     ax.text(
         0,
         -0.045,
-        (
-            f"{analysis.summary['nucleus_count']} nuclei  ·  "
-            f"median nuclear GFP {analysis.summary['median_nuclear_gfp']:.1f}"
-        ),
+        detail,
         transform=ax.transAxes,
         color=MUTED,
         fontsize=10,
@@ -133,7 +146,10 @@ def render_annotation(analysis: WellAnalysis) -> bytes:
     )
     _style_image_axis(ax, analysis)
     fig.suptitle(
-        "FKHR-GFP (green) + DNA (magenta) · segmented nuclei (yellow)",
+        (
+            "FKHR-GFP (green) + DNA (magenta) · nuclei (yellow) · "
+            "distance cytoplasm (cyan)"
+        ),
         x=0.125,
         y=0.985,
         ha="left",
@@ -190,7 +206,10 @@ def render_comparison(analyses: Sequence[WellAnalysis]) -> bytes:
         ax.imshow(_composite(analysis, gfp_bounds, dna_bounds))
         _style_image_axis(ax, analysis)
     fig.suptitle(
-        "Shared display scaling · FKHR-GFP (green), DNA (magenta), nuclei (yellow)",
+        (
+            "Shared scaling · FKHR-GFP (green), DNA (magenta), "
+            "nuclei (yellow), distance cytoplasm (cyan)"
+        ),
         x=0.08,
         y=0.995,
         ha="left",
@@ -241,7 +260,14 @@ def render_parameterized_comparison(
     return _png_bytes(fig)
 
 
-def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
+def render_dose_response(
+    metrics: pd.DataFrame,
+    compound: str,
+    *,
+    metric: str = "median_nuclear_gfp",
+    ylabel: str = "Median nuclear FKHR-GFP intensity (corrected 8-bit units)",
+    title: str | None = None,
+) -> bytes:
     """Render replicate dose wells and controls for one compound."""
     panel = metrics[metrics["series_compound"] == compound].copy()
     dose = panel[panel["condition_type"] == "dose"].copy()
@@ -253,7 +279,7 @@ def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
 
     unit = str(dose["dose_unit"].iloc[0])
     summary = (
-        dose.groupby("dose", as_index=False)["median_nuclear_gfp"]
+        dose.groupby("dose", as_index=False)[metric]
         .median()
         .sort_values("dose")
     )
@@ -267,14 +293,14 @@ def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
         group = group.sort_values("dose")
         ax.plot(
             group["dose"],
-            group["median_nuclear_gfp"],
+            group[metric],
             color=GREEN,
             alpha=0.24,
             linewidth=1,
         )
         ax.scatter(
             group["dose"],
-            group["median_nuclear_gfp"],
+            group[metric],
             color=GREEN,
             alpha=0.72,
             s=30,
@@ -283,7 +309,7 @@ def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
 
     ax.plot(
         summary["dose"],
-        summary["median_nuclear_gfp"],
+        summary[metric],
         color=INK,
         marker="o",
         markersize=5,
@@ -293,7 +319,7 @@ def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
     )
     ax.set_xscale("log")
     ax.set_xlabel(f"{compound} dose ({unit})", color=INK)
-    ax.set_ylabel("Median nuclear FKHR-GFP intensity (8-bit units)", color=INK)
+    ax.set_ylabel(ylabel, color=INK)
     ax.grid(True, color=GRID, linewidth=0.8, alpha=0.8)
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(colors=MUTED)
@@ -303,7 +329,7 @@ def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
     labels = ["Negative", "150 nM\nWortmannin"]
     for x, (condition, label) in enumerate(zip(order, labels, strict=True)):
         values = controls.loc[
-            controls["condition_type"] == condition, "median_nuclear_gfp"
+            controls["condition_type"] == condition, metric
         ]
         control_ax.scatter(
             np.full(len(values), x, dtype=float),
@@ -330,7 +356,7 @@ def render_dose_response(metrics: pd.DataFrame, compound: str) -> bytes:
     control_ax.tick_params(colors=MUTED)
 
     fig.suptitle(
-        f"{compound} dose response",
+        title or f"{compound} dose response",
         x=0.08,
         y=0.99,
         ha="left",

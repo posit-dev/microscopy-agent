@@ -5,12 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import commons
+from dotenv import load_dotenv
 from shiny import App, reactive, render, ui
 from shinychat import chat_sidebar, page_chat
 from shinychat.types import HistoryOptions
 
 from agent import build_agent
 from microscopy.uploads import UPLOAD_LIBRARY
+
+load_dotenv()
 
 INITIAL_GREETING = ui.TagList(
     ui.p(
@@ -117,9 +120,7 @@ def server(input, output, session) -> None:
         gfp_files = input.gfp_upload()
         dna_files = input.dna_upload()
         if not gfp_files or not dna_files:
-            upload_notice.set(
-                ("danger", "Choose both a GFP image and a DNA image.")
-            )
+            upload_notice.set(("danger", "Choose both a GFP image and a DNA image."))
             return
 
         gfp = gfp_files[0]
@@ -180,5 +181,6 @@ def server(input, output, session) -> None:
                 for sample in samples[:20]
             ]
         )
+
 
 app = App(app_ui, server)

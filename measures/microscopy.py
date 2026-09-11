@@ -28,7 +28,10 @@ DERIVED_DIR = PROJECT_ROOT / "data" / "derived"
 WELL_METRICS_PATH = DERIVED_DIR / "well_metrics.parquet"
 NUCLEUS_METRICS_PATH = DERIVED_DIR / "nucleus_metrics.parquet"
 PROVENANCE = (
-    "https://bbbc.broadinstitute.org/BBBC013 (retrieved 2026-09-10)",
+    "https://bbbc.broadinstitute.org/BBBC013",
+    "https://doi.org/10.1177/1087057110370895",
+    "BBBC013_reproduce_logan.zip, SHA-256 "
+    "5ab59bbaddf75fee08436d2d7cfc7460ebfdaa6fdf1b8adb71274c7c27f885f3",
     "commons_microscopy_demo_brief.md",
 )
 COMPOUND = Literal["Wortmannin", "LY294002"]
@@ -139,8 +142,10 @@ def annotate_well(
         f"Annotated well {meta['well']} ({meta['condition_label']}). "
         f"Segmented nuclei: {summary['nucleus_count']}. "
         f"Median nuclear FKHR-GFP intensity: "
-        f"{summary['median_nuclear_gfp']:.2f} 8-bit units; mean: "
-        f"{summary['mean_nuclear_gfp']:.2f}. "
+        f"{summary['median_nuclear_gfp']:.2f} corrected 8-bit units; mean: "
+        f"{summary['mean_nuclear_gfp']:.2f}. Median cytoplasm:nucleus "
+        f"mean-intensity ratio: "
+        f"{summary['median_cytoplasm_to_nucleus_ratio']:.3f}. "
         "The annotated microscopy image is already visible to the user."
     )
     return _encode(
@@ -151,8 +156,9 @@ def annotate_well(
             "nuclear outlines."
         ),
         caption=(
-            "Yellow outlines are nuclei segmented from the DNA channel. "
-            "Green is FKHR-GFP; magenta is DNA."
+            "Yellow outlines are nuclei segmented from the illumination-corrected "
+            "DNA channel. Cyan outlines show the reference-derived distance "
+            "cytoplasm. Green is FKHR-GFP; magenta is DNA."
         ),
     )
 
@@ -183,7 +189,8 @@ def compare_wells(
         (
             f"{analysis.metadata['well']} ({analysis.metadata['condition_label']}): "
             f"{analysis.summary['nucleus_count']} nuclei, median nuclear GFP "
-            f"{analysis.summary['median_nuclear_gfp']:.2f}"
+            f"{analysis.summary['median_nuclear_gfp']:.2f}, median cyto:nucleus "
+            f"{analysis.summary['median_cytoplasm_to_nucleus_ratio']:.3f}"
         )
         for analysis in analyses
     )
@@ -196,7 +203,7 @@ def compare_wells(
         alt_text="Side-by-side annotated BBBC013 microscopy wells.",
         caption=(
             "Channel display limits are shared across panels. Yellow outlines "
-            "show the nuclei used for quantification."
+            "show measured nuclei; cyan outlines show matched distance cytoplasm."
         ),
     )
 
@@ -306,8 +313,73 @@ def dose_response(
         ),
         caption=(
             "The response metric is median nuclear FKHR-GFP intensity from the "
-            "fixed demonstration workflow. Positive controls are 150 nM "
-            "Wortmannin."
+            "fixed demonstration workflow after published illumination correction. "
+            "Positive controls are 150 nM Wortmannin."
+        ),
+    )
+
+
+@commons.measure(
+    description=(
+        "Plot a reference-derived BBBC013 translocation proxy for Wortmannin or "
+        "LY294002. The fixed metric is each well's median per-cell ratio of mean "
+        "FKHR-GFP in the published six-pixel distance cytoplasm to mean FKHR-GFP "
+        "in the nucleus. Lower ratios indicate greater relative nuclear "
+        "accumulation. This is not the paper's tuned classified endpoint."
+    ),
+    title="Microscopy cytoplasm-to-nucleus response",
+    provenance=PROVENANCE,
+)
+def translocation_response(
+    compound: Annotated[
+        COMPOUND,
+        Field(description="Compound whose cytoplasm-to-nucleus response is shown."),
+    ],
+) -> ScientificImageResult:
+    metric = "median_cytoplasm_to_nucleus_ratio"
+    metrics = well_metrics()
+    panel = metrics[
+        (metrics["series_compound"] == compound)
+        & (metrics["condition_type"] == "dose")
+    ].copy()
+    summary = (
+        panel.groupby(["dose", "dose_unit"], as_index=False)[metric]
+        .median()
+        .sort_values("dose")
+    )
+    first = summary.iloc[0]
+    last = summary.iloc[-1]
+    minimum = summary.loc[summary[metric].idxmin()]
+    per_dose = ", ".join(
+        f"{row.dose:g} {row.dose_unit}: {getattr(row, metric):.3f}"
+        for row in summary.itertuples(index=False)
+    )
+    text = (
+        f"{compound} per-dose median cytoplasm:nucleus ratios are {per_dose}. "
+        f"The lowest observed ratio is {minimum[metric]:.3f} at "
+        f"{minimum['dose']:g} {minimum['dose_unit']}. The lowest-dose ratio is "
+        f"{first[metric]:.3f}; the highest-dose ratio is {last[metric]:.3f}. "
+        "Lower values indicate greater relative nuclear FKHR accumulation. "
+        "This continuous reference-derived proxy does not reproduce the paper's "
+        "experiment-tuned cell-classification threshold."
+    )
+    return _encode(
+        render_dose_response(
+            metrics,
+            compound,
+            metric=metric,
+            ylabel="Median cytoplasm:nucleus FKHR-GFP mean-intensity ratio",
+            title=f"{compound} cytoplasm-to-nucleus response",
+        ),
+        model_text=text,
+        alt_text=(
+            f"Cytoplasm-to-nucleus FKHR-GFP ratio response for {compound}, "
+            "showing four replicate wells, their median, and controls."
+        ),
+        caption=(
+            "The cytoplasmic compartment follows the published distance method: "
+            "six-pixel expansion around each nucleus, followed by subtraction of "
+            "the original nucleus and one-pixel shrinkage. Lower is more nuclear."
         ),
     )
 
@@ -356,4 +428,13 @@ def summarize_condition(
         "minimum_well_median": float(rows["median_nuclear_gfp"].min()),
         "maximum_well_median": float(rows["median_nuclear_gfp"].max()),
         "median_nucleus_count": float(rows["nucleus_count"].median()),
+        "median_cytoplasm_to_nucleus_ratio": float(
+            rows["median_cytoplasm_to_nucleus_ratio"].median()
+        ),
+        "minimum_cytoplasm_to_nucleus_ratio": float(
+            rows["median_cytoplasm_to_nucleus_ratio"].min()
+        ),
+        "maximum_cytoplasm_to_nucleus_ratio": float(
+            rows["median_cytoplasm_to_nucleus_ratio"].max()
+        ),
     }

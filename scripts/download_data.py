@@ -117,13 +117,19 @@ def validate_images() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--force", action="store_true")
-    parser.add_argument("--with-reference", action="store_true")
+    parser.add_argument(
+        "--with-reference",
+        action="store_true",
+        help=(
+            "Retained for compatibility; the reference archive is now downloaded "
+            "by default because the trusted workflow uses its illumination maps."
+        ),
+    )
     args = parser.parse_args()
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     selected = dict(FILES)
-    if args.with_reference:
-        selected.update(REFERENCE)
+    selected.update(REFERENCE)
 
     paths = {
         name: download(name, url, expected, args.force)

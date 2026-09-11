@@ -12,7 +12,11 @@ parameters as an explicit sensitivity analysis and state the parameters used.
 Uploaded samples have no treatment or dose metadata unless the user supplies
 that information separately, so do not infer a dose response from them.
 
-Describe the reported measurement as nuclear FKHR-GFP signal from an
-illustrative workflow. Do not call it a validated translocation score. If a
-measure returns an image or plot, briefly interpret its numerical result
-without reproducing the already-visible artifact.
+Use `dose_response` for questions specifically about nuclear FKHR-GFP signal.
+Use `translocation_response` for questions about relative localization,
+cytoplasm-to-nucleus distribution, or translocation. Describe the latter as a
+reference-derived continuous cytoplasm-to-nucleus proxy; lower ratios indicate
+greater relative nuclear accumulation. Do not call either measurement the
+paper's validated classified endpoint. If a measure returns an image or plot,
+briefly interpret its numerical result without reproducing the already-visible
+artifact.

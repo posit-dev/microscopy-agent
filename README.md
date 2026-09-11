@@ -9,9 +9,11 @@ parameters.
 
 The implementation is deliberately illustrative. It segments nuclei from the
 DRAQ channel with a fixed classical image-processing pipeline and reports
-median nuclear FKHR-GFP intensity in 8-bit image units. That measurement is
-useful for this demo, but it is not presented as a validated assay endpoint or
-clinical analysis.
+median nuclear FKHR-GFP intensity in illumination-corrected 8-bit image units.
+It also exposes a reference-derived cytoplasm-to-nucleus ratio using the
+distance-compartment geometry from the published CellProfiler pipelines. These
+measurements are useful for this demo, but they are not presented as validated
+assay endpoints or clinical analysis.
 
 ## Setup
 
@@ -38,7 +40,8 @@ the scientific workflow does not need network access after setup.
 
 ## Demo prompts
 
-- What happens to FKHR localization as we increase the Wortmannin dose?
+- What happens to nuclear FKHR signal as we increase the Wortmannin dose?
+- Show the reference-derived cytoplasm-to-nucleus response for Wortmannin.
 - Show me an untreated well next to a strongly responding treated well, with
   the nuclei annotated.
 - How does LY294002 compare?
@@ -79,13 +82,13 @@ from the stored pixels.
 ## Commands
 
 ```bash
-# Download and validate the 192 BMP files and plate maps
+# Download and validate the images, plate maps, and reference illumination maps
 uv run python scripts/download_data.py
 
 # Re-download even if validated files already exist
 uv run python scripts/download_data.py --force
 
-# Also fetch the historical CellProfiler reference archive
+# Backward-compatible alias; the reference archive is now downloaded by default
 uv run python scripts/download_data.py --with-reference
 
 # Analyze all wells and cache per-well/per-nucleus Parquet files
@@ -101,12 +104,19 @@ uv run ruff check .
 For each well, the workflow:
 
 1. pairs Channel 1 (FKHR-GFP) and Channel 2 (DRAQ/DNA) by parsed well ID;
-2. lightly smooths the DNA image;
-3. applies Otsu thresholding, fills small holes, removes debris, and clears
+2. divides each channel by the published BBBC013 illumination function;
+3. lightly smooths the corrected DNA image;
+4. applies Otsu thresholding, fills small holes, removes debris, and clears
    border-touching objects;
-4. labels the resulting nuclei;
-5. measures area and mean FKHR-GFP intensity per nucleus; and
-6. summarizes the well with the median and mean nuclear GFP intensity.
+5. labels the resulting nuclei;
+6. constructs the reference distance compartment by expanding each original
+   nucleus six pixels, assigning overlaps to the nearest nucleus, subtracting
+   the original nucleus, and shrinking the cytoplasm and measurement nucleus by
+   one pixel;
+7. measures corrected mean FKHR-GFP intensity in each matched nucleus and
+   cytoplasmic compartment; and
+8. summarizes the well with nuclear GFP intensity and the cytoplasm:nucleus
+   mean-intensity ratio.
 
 The public dose-response view uses the median nuclear GFP intensity, shows all
 four replicate wells, and overlays the per-dose median. Negative and positive
@@ -115,11 +125,14 @@ on a logarithmic axis. Representative wells are selected deterministically:
 the well closest to the median response among the relevant control or highest
 dose replicates.
 
-The historical CellProfiler reference workflow includes illumination
-correction, clump splitting, approximate cell/cytoplasm segmentation, and
-nucleus-to-cytoplasm ratios. Those steps are intentionally outside this small
-demo. This project should therefore say “nuclear FKHR signal” or “illustrative
-nuclear accumulation,” not claim equivalence to the published assay workflow.
+The distance cytoplasm and illumination functions come directly from
+`BBBC013_reproduce_logan.zip`. The historical CellProfiler workflow also uses
+MoG nuclear thresholding, intensity-based clump splitting, GFP propagation, a
+large feature library, and experiment-specific classification thresholds.
+Those remaining steps are outside this demo. The continuous cytoplasm:nucleus
+ratio is therefore a reference-derived translocation proxy, not an exact
+reproduction of the paper's top classified feature. Nuclear intensity remains
+the simple public measurement.
 
 ## Data and attribution
 

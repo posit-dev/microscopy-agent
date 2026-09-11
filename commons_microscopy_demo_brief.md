@@ -55,7 +55,7 @@ https://data.broadinstitute.org/bbbc/BBBC013/BBBC013_v1_platemap_wortmannin.txt
 
 https://data.broadinstitute.org/bbbc/BBBC013/BBBC013_v1_platemap_ly294002.txt
 
-Optional reference materials reproducing published CellProfiler results:
+Reference materials used for illumination correction and compartment geometry:
 
 https://data.broadinstitute.org/bbbc/BBBC013/BBBC013_reproduce_logan.zip
 
@@ -141,7 +141,13 @@ At the well level, calculate an appropriate summary of nuclear FKHR signal.
 
 A simple public tutorial on BBBC013 uses mean nuclear GFP intensity as its demonstration measurement. That is a good initial implementation because it is easy to explain and reproduce.
 
-However, **this is one of the main things to review with the microscopy expert**. A nucleus-to-cytoplasm ratio, ring-based measurement, integrated intensity, robust statistic, or some other translocation metric may be a more scientifically appropriate choice.
+The implemented reference-derived translocation proxy follows the distance
+compartment in the published CellProfiler pipeline: expand each original
+nucleus six pixels, assign overlaps to the nearest nucleus, remove the original
+nucleus, and shrink the resulting cytoplasm and measurement nucleus by one
+pixel. Measure mean illumination-corrected GFP in both compartments and report
+the median per-cell cytoplasm:nucleus ratio for each well. Lower ratios indicate
+greater relative nuclear accumulation.
 
 ### 4. Produce an annotated microscopy image
 
