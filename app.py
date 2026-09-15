@@ -70,8 +70,12 @@ UPLOAD_SIDEBAR = chat_sidebar(
           --bs-border-radius-sm: 0.25rem;
         }
 
+        /* Let the conversation own the scrolling: shinychat otherwise clamps
+           a tool card to 500px, which puts a second scrollbar inside the
+           card whenever it holds a full-size microscopy figure. */
         .shiny-tool-card:has(.microscopy-image-result) {
           opacity: 1 !important;
+          --shiny-tool-card-max-height: none;
         }
 
         /* Wide enough cards that the four greeting suggestions land 2x2
