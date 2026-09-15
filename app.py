@@ -31,7 +31,7 @@ UPLOAD_ACCEPT = [".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"]
 
 
 def upload_form() -> ui.Tag:
-    """Build the upload controls shown in the "Add microscopy data" dialog."""
+    """Build the upload controls shown in the "Upload sample" dialog."""
     return ui.div(
         ui.p(
             "Add a matching GFP and DNA image pair. Samples are stored "
@@ -99,7 +99,7 @@ UPLOAD_SIDEBAR = chat_sidebar(
     ),
     ui.input_action_button(
         "open_upload",
-        "Add microscopy data…",
+        "Upload sample…",
         # The sidebar panel is a flex column, so without this the button
         # stretches to the full sidebar width.
         class_="btn-outline-primary align-self-start btn-sm px-4",
@@ -135,7 +135,7 @@ def server(input, output, session) -> None:
         "chat",
         build_agent(),
         greeting=INITIAL_GREETING,
-        history=HistoryOptions(title=None),
+        history=HistoryOptions(title=None, store="file"),
         on_error="actual",
     )
     upload_notice = reactive.value(None)
@@ -149,7 +149,7 @@ def server(input, output, session) -> None:
         ui.modal_show(
             ui.modal(
                 upload_form(),
-                title="Add microscopy data",
+                title="Upload sample",
                 easy_close=True,
                 footer=ui.TagList(
                     ui.modal_button("Cancel"),

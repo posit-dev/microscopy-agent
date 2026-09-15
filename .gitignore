@@ -13,3 +13,4 @@ data/derived/*
 data/uploads/*
 !data/uploads/.gitkeep
 .env
+.shinychat/
