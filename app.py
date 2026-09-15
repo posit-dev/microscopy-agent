@@ -29,6 +29,39 @@ INITIAL_GREETING = (
 
 UPLOAD_ACCEPT = [".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"]
 
+
+def upload_form() -> ui.Tag:
+    """Build the upload controls shown in the "Add microscopy data" dialog."""
+    return ui.div(
+        ui.p(
+            "Add a matching GFP and DNA image pair. Samples are stored "
+            "permanently and receive an ID the agent can use.",
+            class_="text-body-secondary small",
+        ),
+        ui.input_text(
+            "sample_name",
+            "Sample name",
+            placeholder="For example: patient-7 baseline",
+        ),
+        ui.input_file(
+            "gfp_upload",
+            "FKHR-GFP channel",
+            accept=UPLOAD_ACCEPT,
+            button_label="Choose file",
+            placeholder="None selected",
+        ),
+        ui.input_file(
+            "dna_upload",
+            "DNA channel",
+            accept=UPLOAD_ACCEPT,
+            button_label="Choose file",
+            placeholder="None selected",
+        ),
+        ui.output_ui("upload_status"),
+        class_="microscopy-upload-form",
+    )
+
+
 UPLOAD_SIDEBAR = chat_sidebar(
     ui.tags.style(
         """
@@ -50,59 +83,26 @@ UPLOAD_SIDEBAR = chat_sidebar(
         }
 
         /* Shiny's file input renders a full-size button plus a readonly
-           field, which towers over the text inputs beside it. Size the
-           upload controls like the sample-name field so the form sits on
-           one scale. */
-        #chat-sidebar .btn-file,
-        #chat-sidebar .input-group .form-control,
-        #chat-sidebar #save_upload {
+           field, which towers over the text input above it. Size them like
+           the sample-name field so the form sits on one scale. */
+        .microscopy-upload-form .btn-file,
+        .microscopy-upload-form .input-group .form-control {
           padding: 0.375rem 0.75rem;
           font-size: 0.9375rem;
           line-height: 1.5;
         }
-
-        #chat-sidebar .shiny-file-input-progress {
-          height: 0.375rem;
-        }
         """
     ),
-    ui.h6("Upload microscopy data", class_="mb-1"),
-    ui.p(
-        "Add a matching GFP and DNA image pair. Samples are stored permanently "
-        "and receive an ID the agent can use.",
-        class_="text-body-secondary small",
-    ),
-    ui.input_text(
-        "sample_name",
-        "Sample name",
-        placeholder="For example: patient-7 baseline",
-    ),
-    ui.input_file(
-        "gfp_upload",
-        "FKHR-GFP channel",
-        accept=UPLOAD_ACCEPT,
-        button_label="Choose file",
-        placeholder="None selected",
-    ),
-    ui.input_file(
-        "dna_upload",
-        "DNA channel",
-        accept=UPLOAD_ACCEPT,
-        button_label="Choose file",
-        placeholder="None selected",
-    ),
-    ui.input_action_button(
-        "save_upload",
-        "Add to library",
-        # The sidebar panel is a flex column, so without this the button
-        # stretches to the full sidebar width.
-        class_="btn-primary align-self-start",
-    ),
-    ui.output_ui("upload_status"),
-    ui.hr(),
     ui.h6(
         "Available to the agent",
         class_="text-body-secondary text-uppercase fw-semibold small mb-2",
+    ),
+    ui.input_action_button(
+        "open_upload",
+        "Add microscopy data…",
+        # The sidebar panel is a flex column, so without this the button
+        # stretches to the full sidebar width.
+        class_="btn-outline-primary align-self-start btn-sm px-4",
     ),
     ui.output_ui("upload_inventory"),
     history=True,
@@ -140,6 +140,33 @@ def server(input, output, session) -> None:
     )
     upload_notice = reactive.value(None)
     inventory_version = reactive.value(0)
+    saved_pair = reactive.value(None)
+
+    @reactive.effect
+    @reactive.event(input.open_upload)
+    def _open_upload() -> None:
+        upload_notice.set(None)
+        ui.modal_show(
+            ui.modal(
+                upload_form(),
+                title="Add microscopy data",
+                easy_close=True,
+                footer=ui.TagList(
+                    ui.modal_button("Cancel"),
+                    ui.input_action_button(
+                        "save_upload",
+                        "Add to library",
+                        class_="btn-primary",
+                    ),
+                ),
+            )
+        )
+
+    @reactive.effect
+    @reactive.event(input.gfp_upload, input.dna_upload, ignore_init=True)
+    def _clear_notice() -> None:
+        # Choosing a file answers whatever the last complaint was about.
+        upload_notice.set(None)
 
     @reactive.effect
     @reactive.event(input.save_upload)
@@ -152,6 +179,14 @@ def server(input, output, session) -> None:
 
         gfp = gfp_files[0]
         dna = dna_files[0]
+        # Dismissing the dialog does not clear the file inputs server-side, so
+        # a second visit would otherwise re-save the pair still sitting in
+        # `input` when the button is clicked without choosing new files.
+        pair = (gfp["datapath"], dna["datapath"])
+        if pair == saved_pair.get():
+            upload_notice.set(("danger", "Choose a new image pair to add."))
+            return
+
         try:
             sample = UPLOAD_LIBRARY.register_pair(
                 sample_name=input.sample_name() or Path(gfp["name"]).stem,
@@ -164,14 +199,15 @@ def server(input, output, session) -> None:
             upload_notice.set(("danger", str(error)))
             return
 
-        upload_notice.set(
-            (
-                "success",
-                f"Saved permanently as {sample.upload_id}. "
-                "You can now refer to that ID in chat.",
-            )
-        )
+        saved_pair.set(pair)
+        upload_notice.set(None)
         inventory_version.set(inventory_version.get() + 1)
+        ui.modal_remove()
+        ui.notification_show(
+            f"Saved permanently as {sample.upload_id}. "
+            "You can now refer to that ID in chat.",
+            duration=8,
+        )
 
     @render.ui
     def upload_status():
