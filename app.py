@@ -21,8 +21,8 @@ INITIAL_GREETING = (
     "Try one of these:\n\n"
     "- <span class='suggestion'>What happens as we increase the Wortmannin "
     "dose?</span>\n"
-    "- <span class='suggestion'>Compare an untreated well with a responding "
-    "well, nuclei annotated</span>\n"
+    "- <span class='suggestion'>How does a responding well compare with an "
+    "untreated one?</span>\n"
     "- <span class='suggestion'>How does LY294002 compare?</span>\n"
     "- <span class='suggestion'>What uploaded samples can you analyze?</span>\n"
 )
@@ -42,14 +42,31 @@ UPLOAD_SIDEBAR = chat_sidebar(
         }
 
         /* Wide enough cards that the four greeting suggestions land 2x2
-           instead of 3 + 1. shinychat reads this custom property directly;
-           it is not a Sass variable of commons.ui.theme(). */
+           instead of 3 + 1, narrow enough to keep two columns when the chat
+           column shrinks. shinychat reads this custom property directly; it
+           is not a Sass variable of commons.ui.theme(). */
         .shiny-chat-suggestion-list {
-          --shiny-chat-suggestion-card-min-width: 240px;
+          --shiny-chat-suggestion-card-min-width: 200px;
+        }
+
+        /* Shiny's file input renders a full-size button plus a readonly
+           field, which towers over the text inputs beside it. Size the
+           upload controls like the sample-name field so the form sits on
+           one scale. */
+        #chat-sidebar .btn-file,
+        #chat-sidebar .input-group .form-control,
+        #chat-sidebar #save_upload {
+          padding: 0.375rem 0.75rem;
+          font-size: 0.9375rem;
+          line-height: 1.5;
+        }
+
+        #chat-sidebar .shiny-file-input-progress {
+          height: 0.375rem;
         }
         """
     ),
-    ui.h4("Upload microscopy data"),
+    ui.h6("Upload microscopy data", class_="mb-1"),
     ui.p(
         "Add a matching GFP and DNA image pair. Samples are stored permanently "
         "and receive an ID the agent can use.",
@@ -64,24 +81,29 @@ UPLOAD_SIDEBAR = chat_sidebar(
         "gfp_upload",
         "FKHR-GFP channel",
         accept=UPLOAD_ACCEPT,
-        button_label="Choose GFP image",
-        placeholder="No GFP image selected",
+        button_label="Choose file",
+        placeholder="None selected",
     ),
     ui.input_file(
         "dna_upload",
         "DNA channel",
         accept=UPLOAD_ACCEPT,
-        button_label="Choose DNA image",
-        placeholder="No DNA image selected",
+        button_label="Choose file",
+        placeholder="None selected",
     ),
     ui.input_action_button(
         "save_upload",
         "Add to library",
-        class_="btn-primary w-100",
+        # The sidebar panel is a flex column, so without this the button
+        # stretches to the full sidebar width.
+        class_="btn-primary align-self-start",
     ),
     ui.output_ui("upload_status"),
     ui.hr(),
-    ui.h5("Available to the agent"),
+    ui.h6(
+        "Available to the agent",
+        class_="text-body-secondary text-uppercase fw-semibold small mb-2",
+    ),
     ui.output_ui("upload_inventory"),
     history=True,
     width=360,
@@ -93,7 +115,7 @@ app_ui = page_chat(
     id="chat",
     sidebar=UPLOAD_SIDEBAR,
     greeting=INITIAL_GREETING,
-    placeholder="Ask about wells, treatments, dose response, or uploads…",
+    placeholder="Ask about wells, doses, or uploads…",
     allow_attachments=False,
     window_title="Commons microscopy demo",
     theme=commons.ui.theme(),
