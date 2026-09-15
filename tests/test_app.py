@@ -14,10 +14,20 @@ def test_page_chat_combines_commons_theme_history_and_upload_controls() -> None:
     markup = str(app_ui)
     assert "shiny-chat-history" in markup
     assert any(
-        dependency.name == "commons-chat"
-        for dependency in app_ui.get_dependencies()
+        dependency.name == "commons-chat" for dependency in app_ui.get_dependencies()
     )
     assert "--bs-border-radius: 0.375rem" in markup
     assert ".shiny-tool-card:has(.microscopy-image-result)" in markup
     assert 'id="gfp_upload"' in markup
     assert 'id="dna_upload"' in markup
+
+
+def test_greeting_offers_four_suggestion_cards() -> None:
+    from app import INITIAL_GREETING
+
+    items = [
+        line
+        for line in INITIAL_GREETING.splitlines()
+        if line.startswith("- <span class='suggestion'")
+    ]
+    assert len(items) == 4

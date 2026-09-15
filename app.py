@@ -15,18 +15,16 @@ from microscopy.uploads import UPLOAD_LIBRARY
 
 load_dotenv()
 
-INITIAL_GREETING = ui.TagList(
-    ui.p(
-        "Ask about FKHR nuclear signal, dose response, a BBBC013 well, or "
-        "an image pair from the upload library."
-    ),
-    ui.p(
-        "Try: ",
-        ui.tags.span(
-            "What happens as we increase the Wortmannin dose?",
-            class_="suggestion submit",
-        ),
-    ),
+INITIAL_GREETING = (
+    "Ask about FKHR nuclear signal, dose response, a BBBC013 well, or "
+    "an image pair from the upload library.\n\n"
+    "Try one of these:\n\n"
+    "- <span class='suggestion'>What happens as we increase the Wortmannin "
+    "dose?</span>\n"
+    "- <span class='suggestion'>Compare an untreated well with a responding "
+    "well, nuclei annotated</span>\n"
+    "- <span class='suggestion'>How does LY294002 compare?</span>\n"
+    "- <span class='suggestion'>What uploaded samples can you analyze?</span>\n"
 )
 
 UPLOAD_ACCEPT = [".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"]
@@ -41,6 +39,13 @@ UPLOAD_SIDEBAR = chat_sidebar(
 
         .shiny-tool-card:has(.microscopy-image-result) {
           opacity: 1 !important;
+        }
+
+        /* Wide enough cards that the four greeting suggestions land 2x2
+           instead of 3 + 1. shinychat reads this custom property directly;
+           it is not a Sass variable of commons.ui.theme(). */
+        .shiny-chat-suggestion-list {
+          --shiny-chat-suggestion-card-min-width: 240px;
         }
         """
     ),
